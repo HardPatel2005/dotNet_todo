@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASP.NET Core Todo App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .todo-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .input-group input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .input-group button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 16px;
+        }
+
+        .input-group button:hover {
+            background-color: #0056b3;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+        
+        li.completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+
+        .task-name {
+            flex-grow: 1;
+            cursor: pointer;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .task-actions button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="todo-container">
+    <h1>My Todo List</h1>
+    <div class="input-group">
+        <input type="text" id="todo-input" placeholder="Add a new task...">
+        <button id="add-button">Add</button>
+    </div>
+    <ul id="todo-list">
+        <!-- Todo items will be rendered here -->
+    </ul>
+</div>
+
+<script>
+    // Make sure to update this URL to the actual URL where your backend is running.
+    // The port might be different (e.g., 5000, 7001).
+    const API_URL = 'http://localhost:5258/api/TodoItems'; 
+    const todoList = document.getElementById('todo-list');
+    const todoInput = document.getElementById('todo-input');
+    const addButton = document.getElementById('add-button');
+
+    // Fetch all tasks from the API and render them
+    async function fetchTasks() {
+        try {
+            const response = await fetch(API_URL);
+            const tasks = await response.json();
+            renderTasks(tasks);
+        } catch (error) {
+            console.error('Error fetching tasks:', error);
+        }
+    }
+
+    // Render the tasks to the list
+    function renderTasks(tasks) {
+        todoList.innerHTML = '';
+        tasks.forEach(task => {
+            const li = document.createElement('li');
+            li.setAttribute('data-id', task.id);
+            if (task.isComplete) {
+                li.classList.add('completed');
+            }
+
+            const taskName = document.createElement('span');
+            taskName.textContent = task.name;
+            taskName.classList.add('task-name');
+            taskName.addEventListener('click', () => toggleComplete(task.id, task.name, task.isComplete));
+
+            const actions = document.createElement('div');
+            actions.classList.add('task-actions');
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.addEventListener('click', () => deleteTask(task.id));
+
+            actions.appendChild(deleteButton);
+            li.appendChild(taskName);
+            li.appendChild(actions);
+            todoList.appendChild(li);
+        });
+    }
+
+    // Add a new task to the list
+    async function addTask() {
+        const name = todoInput.value.trim();
+        if (!name) return;
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: name, isComplete: false }),
+            });
+
+            if (response.ok) {
+                todoInput.value = '';
+                fetchTasks(); // Refresh the list
+            }
+        } catch (error) {
+            console.error('Error adding task:', error);
+        }
+    }
+
+    // Toggle the completion status of a task
+    async function toggleComplete(id, name, isComplete) {
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: id, name: name, isComplete: !isComplete }),
+            });
+
+            if (response.ok) {
+                fetchTasks(); // Refresh the list
+            }
+        } catch (error) {
+            console.error('Error updating task:', error);
+        }
+    }
+
+    // Delete a task from the list
+    async function deleteTask(id) {
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                fetchTasks(); // Refresh the list
+            }
+        } catch (error) {
+            console.error('Error deleting task:', error);
+        }
+    }
+
+    // Event listeners
+    addButton.addEventListener('click', addTask);
+    todoInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            addTask();
+        }
+    });
+
+    // Initial fetch to load existing tasks when the page loads
+    fetchTasks();
+</script>
+
+</body>
+</html>
