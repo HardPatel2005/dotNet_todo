@@ -1,0 +1,37 @@
+#
+# .gitignore for ASP.NET Core projects
+#
+
+# --- Visual Studio and VS Code ---
+.vs/
+.vscode/
+
+# --- Build artifacts ---
+[Bb]in/
+[Oo]bj/
+# VS Code specific build folders
+.vs/
+.vscode/
+
+# --- Packages ---
+*.nupkg
+*.suo
+project.assets.json
+# NuGet package folders
+[Nn]u[Gg]et[Pp]ackages/
+packages/
+
+# --- Generated files ---
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+appsettings.json
+
+# --- Database and data files ---
+*.db
+*.sqlite
+*.mdf
+*.ldf
+
+# --- Sensitive information (e.g., environment files) ---
+.env
