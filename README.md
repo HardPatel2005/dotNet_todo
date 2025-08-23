@@ -1,2 +1,1 @@
-# django
-# hiiiii
+# making first Todo App in dotnet
