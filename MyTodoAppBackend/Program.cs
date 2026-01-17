@@ -1,60 +1,69 @@
-// Import necessary libraries at the top
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MyTodoAppBackend.Models;
-using Microsoft.AspNetCore.Cors;
+using MyCrudApp.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
-
-// Configure the database context to use an in-memory database.
-builder.Services.AddDbContext<TodoContext>(opt =>
-    opt.UseInMemoryDatabase("TodoList"));
-
-// Add a CORS policy to allow the frontend to access the API.
-// This is done once in the services collection.
-builder.Services.AddCors(options =>
-{
-    // You can name your policy or use the default one.
-    options.AddDefaultPolicy(
-        policy =>
-        {
-            // IMPORTANT: Allow the specific origin of your frontend.
-            // Replace with your actual frontend URL (e.g., from Live Server).
-            policy.WithOrigins("http://localhost:5093", "http://127.0.0.1:5500")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
-});
-
-// Add services for API documentation (Swagger/OpenAPI).
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Build the application. This must happen only once.
+// Configure SQLite Database
+builder.Services.AddDbContext<TodoContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Add Identity
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<TodoContext>()
+    .AddDefaultTokenProviders();
+
+// Configure allowed CORS origins (from configuration, with a development fallback)
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                    ?? new[] { "https://localhost:3000" };
+
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
-// --- HTTP Request Pipeline Configuration ---
+// Ensure database is created
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<TodoContext>();
+        context.Database.EnsureCreated();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred creating the DB.");
+    }
+}
 
-// Enable Swagger UI for API documentation in the development environment.
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Redirects HTTP requests to HTTPS.
 app.UseHttpsRedirection();
-
-// Use the CORS policy. This must be called before app.MapControllers().
-app.UseCors();
-
-// Enable authorization middleware.
+app.UseCors("AllowAll");
+app.UseAuthentication();
 app.UseAuthorization();
-
-// Maps controller routes to the application.
 app.MapControllers();
 
-// Starts the application.
 app.Run();

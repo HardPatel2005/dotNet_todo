@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            text-align: left;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .form-group button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+        .toggle-form {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        #message {
+            margin-top: 20px;
+            color: green;
+            font-weight: bold;
+        }
+        #error-message {
+            margin-top: 20px;
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="register-form">
+        <h1>Register</h1>
+        <form id="registration-form">
+            <div class="form-group">
+                <label for="register-email">Email:</label>
+                <input type="email" id="register-email" required>
+            </div>
+            <div class="form-group">
+                <label for="register-password">Password:</label>
+                <input type="password" id="register-password" required>
+            </div>
+            <button type="submit">Register</button>
+        </form>
+        <p>Already have an account? <span class="toggle-form" onclick="showLoginForm()">Login here</span></p>
+    </div>
+
+    <div id="login-form" style="display:none;">
+        <h1>Login</h1>
+        <form id="login-form-submit">
+            <div class="form-group">
+                <label for="login-email">Email:</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password:</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        <p>Don't have an account? <span class="toggle-form" onclick="showRegisterForm()">Register here</span></p>
+    </div>
+
+    <p id="message"></p>
+    <p id="error-message"></p>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:5258/api'; // Make sure this matches your backend URL
+    const messageEl = document.getElementById('message');
+    const errorEl = document.getElementById('error-message');
+
+    function showRegisterForm() {
+        document.getElementById('register-form').style.display = 'block';
+        document.getElementById('login-form').style.display = 'none';
+        messageEl.textContent = '';
+        errorEl.textContent = '';
+    }
+
+    function showLoginForm() {
+        document.getElementById('register-form').style.display = 'none';
+        document.getElementById('login-form').style.display = 'block';
+        messageEl.textContent = '';
+        errorEl.textContent = '';
+    }
+
+    document.getElementById('registration-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/Auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (response.ok) {
+                messageEl.textContent = 'Registration successful! You can now log in.';
+                errorEl.textContent = '';
+                showLoginForm();
+            } else {
+                const errorData = await response.json();
+                errorEl.textContent = `Registration failed: ${JSON.stringify(errorData)}`;
+                messageEl.textContent = '';
+            }
+        } catch (error) {
+            errorEl.textContent = 'An error occurred during registration. Please try again.';
+            messageEl.textContent = '';
+            console.error('Registration Error:', error);
+        }
+    });
+
+    document.getElementById('login-form-submit').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/Auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (response.ok) {
+                // If login is successful, expect a token from the backend and store it.
+                const data = await response.json();
+                if (data && data.token) {
+                    // Store the issued token instead of a simple boolean flag.
+                    localStorage.setItem('isAuthenticated', data.token);
+                    localStorage.setItem('userEmail', email);
+                } else {
+                    console.warn('Login succeeded but no token was returned by the API.');
+                }
+
+                messageEl.textContent = 'Login successful!';
+                errorEl.textContent = '';
+                
+                // You would typically redirect the user to the main app here.
+                // For this example, let's just log a message.
+                console.log('User logged in. Redirecting to main app...');
+
+            } else {
+                errorEl.textContent = 'Login failed. Invalid email or password.';
+                messageEl.textContent = '';
+            }
+        } catch (error) {
+            errorEl.textContent = 'An error occurred during login. Please try again.';
+            messageEl.textContent = '';
+            console.error('Login Error:', error);
+        }
+    });
+
+</script>
+
+</body>
+</html>

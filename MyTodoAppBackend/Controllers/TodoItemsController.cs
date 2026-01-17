@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MyCrudApp.Models;
 using MyTodoAppBackend.Models;
-
 namespace MyTodoAppBackend.Controllers
 {
     [Route("api/[controller]")]

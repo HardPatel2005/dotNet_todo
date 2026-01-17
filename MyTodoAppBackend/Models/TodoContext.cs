@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using MyTodoAppBackend.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
-namespace MyTodoAppBackend.Models
+namespace MyCrudApp.Models
 {
-    public class TodoContext : DbContext
+    public class TodoContext : IdentityDbContext<ApplicationUser>
     {
         public TodoContext(DbContextOptions<TodoContext> options)
             : base(options)
